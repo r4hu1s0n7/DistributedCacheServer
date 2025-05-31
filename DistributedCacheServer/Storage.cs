@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,9 +11,13 @@ namespace DistributedCacheServer
     {
         private  Dictionary<string, ValueItem> ValuePairs = new Dictionary<string, ValueItem>();
         private static Storage storage = new Storage ();
+        private IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+
+        private readonly int DEFAULT_EXPIRY_SECONDS;
 
         private Storage()
         {
+            DEFAULT_EXPIRY_SECONDS = Convert.ToInt32(config["DefaultExpiryTime"]);
         }
        
         public static Storage GetStorage()
@@ -24,6 +29,10 @@ namespace DistributedCacheServer
 
         public void ExecuteSet(Command command)
         {
+            if(command.Value.Expiry == null)
+            {
+                command.Value.Expiry = DateTime.Now.AddSeconds(DEFAULT_EXPIRY_SECONDS);    
+            }
             ValuePairs[command.Value.Key]= command.Value;
         }
 

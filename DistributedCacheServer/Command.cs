@@ -23,7 +23,6 @@ namespace DistributedCacheServer
 
     public class Command
     {
-        private const int DEFAULT_EXPIRY_SECONDS = 60;
 
         public CommandName Name;
         public CommandType Type;
@@ -78,10 +77,7 @@ namespace DistributedCacheServer
                 {
                     command.Value.Expiry = DateTime.Now.AddSeconds(seconds);
                 }
-                else
-                {
-                    command.Value.Expiry = DateTime.Now.AddSeconds(DEFAULT_EXPIRY_SECONDS);
-                }
+                
             }
             else
             {

@@ -1,12 +1,14 @@
 ﻿using DistributedCacheServer;
+using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-
+var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
 const int ReadBufferSize = 1024 * 2;
-const int Port = 9500;
-IPAddress IPaddr = IPAddress.Parse("127.0.0.1");
+int Port = Convert.ToInt32(config["ClientPort"]);
+string IP = config["ClientIP"];
+IPAddress IPaddr = IPAddress.Parse(IP);
 var listener = new TcpListener(IPaddr, Port);
 
 Console.WriteLine("CACHE Server:");
