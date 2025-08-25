@@ -11,6 +11,16 @@ namespace DistributedCacheServer
         public string Key { get; set; }
         public object Value { get; set; }
         public DateTime Expiry {  get; set; }
+
+        public ValueItem Clone()
+        {
+            return new ValueItem()
+            {
+                Key = this.Key, 
+                Value = this.Value,
+                Expiry = this.Expiry
+            };
+        }
     }
 
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ namespace DistributedCacheServer
 {
     public class Storage
     {
-        private  Dictionary<string, ValueItem> ValuePairs = new Dictionary<string, ValueItem>();
+        private  ConcurrentDictionary<string, ValueItem> ValuePairs = new ConcurrentDictionary<string, ValueItem>();
         private static Storage storage = new Storage ();
         private IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
@@ -50,6 +51,20 @@ namespace DistributedCacheServer
             {
                 return -1;
             }
+        }
+
+        public Dictionary<string,ValueItem> CopyStorage()
+        {
+            // make deep copy ... because windows doesn't support fork
+            return ValuePairs.ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value.Clone()
+                );
+        }
+
+        public void LoadStorage(ConcurrentDictionary<string, ValueItem> pairs)
+        {
+            ValuePairs = pairs;
         }
     }
 }
