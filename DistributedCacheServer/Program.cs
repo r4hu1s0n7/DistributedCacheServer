@@ -12,17 +12,15 @@ IPAddress IPaddr = IPAddress.Parse(IP);
 var listener = new TcpListener(IPaddr, Port);
 
 Console.WriteLine("CACHE Server:");
-if (!string.IsNullOrEmpty(config["PersistanceMode"]))
+if (Enum.TryParse<Persistance.RecoveryMode>(config["RecoveryMode"], true, out var RecoveryMode))
 {
-    if (Enum.TryParse<Persistance.PersistanceMode>( config["PersistanceMode"].ToString(), true,out var PersistanceMode))
-    {
-        
-        Persistance.StartPersistance(PersistanceMode);
-    }
-    if (Enum.TryParse<Persistance.RecoveryMode>(config["RecoveryMode"], true,out var RecoveryMode))
-    {
-        Persistance.LoadStorage(RecoveryMode);
-    }
+    Persistance.LoadStorage(RecoveryMode);
+}
+
+
+if (Enum.TryParse<Persistance.PersistanceMode>(config["PersistanceMode"], true,out var PersistanceMode))
+{        
+    Persistance.StartPersistance(PersistanceMode);
 }
 
 

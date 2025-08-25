@@ -67,9 +67,11 @@ namespace DistributedCacheServer
             _cts?.Dispose();
         }
 
-        internal ConcurrentDictionary<string, ValueItem> Load()
+        public void Load()
         {
-            throw new NotImplementedException();
+            if (!File.Exists(filePath)) throw new Exception($"File not found: {filePath}");
+            var filebytes = File.ReadAllBytes(filePath);
+            var commands = RESP.DeseerializeBulk(filebytes);
         }
 
         public void Dispose()

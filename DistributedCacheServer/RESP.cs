@@ -79,17 +79,38 @@ namespace DistributedCacheServer
         }
 
 
-        public static List<object> Deserialize(byte[] bytes)
+        public static List<List<string>> DeseerializeBulk(byte[] bytes)
+        {
+            List<List<string>> commands = new List<List<string>>();
+            var commandsStr = Encoding.UTF8.GetString(bytes);
+            int pos = 0;
+            var current = commandsStr[0];
+            while(pos < commandsStr.Length)
+            {
+                pos++;
+                if(current == '*')
+                {
+                    commands.Add(DeserializeArray(ref pos, commandsStr));
+                }
+                else
+                {
+                    throw new Exception("File corrupted: expected char '*'");
+                }
+            }
+            return commands;
+
+        }
+
+        public static List<object> Deserialize(ref int pos,byte[] bytes)
         {
 
-            var obj = DeserializeObj(bytes);
+            var obj = DeserializeObj(ref pos,bytes);
             return obj;
         }
 
-        private static List<object> DeserializeObj(byte[] bytes)
+        private static List<object> DeserializeObj(ref int pos,byte[] bytes)
         {
             List<object> args = new List<object>();
-            int pos = 0;
             string response = Encoding.UTF8.GetString(bytes);
             while (pos < response.Length)
             {

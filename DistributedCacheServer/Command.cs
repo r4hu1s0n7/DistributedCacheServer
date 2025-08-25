@@ -45,7 +45,7 @@ namespace DistributedCacheServer
                 case CommandName.SET:
                     command.Type = CommandType.STORAGE;
                     command = ParseSET(command,items);
-                    AOFOperations.Instance.AddCommand(RESP.Serialize(items));
+                    AOFOperations.Instance.AddCommand(Encoding.Default.GetString(RESP.Serialize(items)));
                     break;
                 default:
                     throw new CacheException("Command Not Found");
@@ -88,9 +88,6 @@ namespace DistributedCacheServer
             return command;
         }
 
-        public override string ToString()
-        {
-            return string.Join()
-        }
+       
     }
 }
