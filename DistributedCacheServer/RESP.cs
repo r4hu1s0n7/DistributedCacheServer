@@ -101,15 +101,17 @@ namespace DistributedCacheServer
 
         }
 
-        public static List<object> Deserialize(ref int pos,byte[] bytes)
+        public static List<object> Deserialize(byte[] bytes)
         {
 
-            var obj = DeserializeObj(ref pos,bytes);
+            var obj = DeserializeObj(bytes);
             return obj;
         }
+      
 
-        private static List<object> DeserializeObj(ref int pos,byte[] bytes)
+        private static List<object> DeserializeObj(byte[] bytes)
         {
+            int pos = 0;
             List<object> args = new List<object>();
             string response = Encoding.UTF8.GetString(bytes);
             while (pos < response.Length)

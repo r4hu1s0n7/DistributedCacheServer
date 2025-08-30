@@ -30,9 +30,12 @@ namespace DistributedCacheServer
 
         }
 
-        public void AddCommand(string command)
+        public void AddCommand(Command command)
         {
-            CommandsQueue.Enqueue(command);
+            string commandString = command.ToString();
+            var commandResp = RESP.Serialize(commandString);
+            var commandBytes = Encoding.UTF8.GetString(commandResp);
+            CommandsQueue.Enqueue(commandBytes);
         }
 
         public void Start()
@@ -49,7 +52,7 @@ namespace DistributedCacheServer
                     while(CommandsQueue.TryDequeue(out var command))
                     {
                         try {
-                            await streamWriter.WriteLineAsync(command);
+                            await streamWriter.WriteLineAsync(command.Trim());
                             await streamWriter.FlushAsync();
                         }
                         catch( Exception e)
@@ -61,17 +64,20 @@ namespace DistributedCacheServer
             });
         }
 
+     
         public void Stop()
         {
             _cts?.Cancel();
             _cts?.Dispose();
         }
 
-        public void Load()
+        public List<List<string>> Load()
         {
             if (!File.Exists(filePath)) throw new Exception($"File not found: {filePath}");
             var filebytes = File.ReadAllBytes(filePath);
+           
             var commands = RESP.DeseerializeBulk(filebytes);
+            return commands;
         }
 
         public void Dispose()

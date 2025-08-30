@@ -30,11 +30,13 @@ namespace DistributedCacheServer
 
         public void ExecuteSet(Command command)
         {
-            if(command.Value.Expiry == null)
+            if(command.Value.Expiry == null || command.Value.Expiry == 0)
             {
-                command.Value.Expiry = DateTime.Now.AddSeconds(DEFAULT_EXPIRY_SECONDS);    
+                command.Value.Expiry = DateTimeOffset.UtcNow.AddSeconds(DEFAULT_EXPIRY_SECONDS).Ticks;    
             }
             ValuePairs[command.Value.Key]= command.Value;
+            Persistance.Instance.Store(command);
+
         }
 
         public object ExecuteGet(Command command)
@@ -42,7 +44,7 @@ namespace DistributedCacheServer
             string key = command.Value.Key;
             if (ValuePairs.ContainsKey(key))
             {
-                if (ValuePairs[key].Expiry > DateTime.Now)
+                if (ValuePairs[key].Expiry > DateTime.UtcNow.Ticks)
                     return ValuePairs[key].Value;
                 else
                     return -1;

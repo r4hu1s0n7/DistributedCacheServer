@@ -12,18 +12,10 @@ IPAddress IPaddr = IPAddress.Parse(IP);
 var listener = new TcpListener(IPaddr, Port);
 
 Console.WriteLine("CACHE Server:");
-if (Enum.TryParse<Persistance.RecoveryMode>(config["RecoveryMode"], true, out var RecoveryMode))
-{
-    Persistance.LoadStorage(RecoveryMode);
-}
 
+Persistance.Instance.LoadStorage();
 
-if (Enum.TryParse<Persistance.PersistanceMode>(config["PersistanceMode"], true,out var PersistanceMode))
-{        
-    Persistance.StartPersistance(PersistanceMode);
-}
-
-
+Persistance.Instance.StartPersistance();
 
 
 
@@ -50,7 +42,7 @@ while (true)
         {
             Command executableCommand = Command.Parse(commandArgs.ToArray());
 
-            response = PerformExecution(executableCommand);
+            response = Command.Execute(executableCommand);
 
         }catch (CacheException ce)
         {
@@ -62,26 +54,3 @@ while (true)
     }
 }
 
-object PerformExecution(Command executableCommand)
-{
-    switch (executableCommand.Type)
-    {
-        case CommandType.STORAGE:
-            if (executableCommand.Name == CommandName.GET)
-            {
-                return Storage.GetStorage().ExecuteGet(executableCommand);
-            }else if(executableCommand.Name == CommandName.SET)
-            {
-                Storage.GetStorage().ExecuteSet(executableCommand);
-                return "OK";
-            }
-            else
-            {
-                throw new CacheException("Command not implemented");
-            }
-        case CommandType.SYSTEM:
-                throw new CacheException("Command not implemented");
-
-    }
-    return null;
-}

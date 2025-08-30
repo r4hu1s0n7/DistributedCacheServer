@@ -44,7 +44,7 @@ namespace DistributedCacheServer
                 bw.Write(pair.Key);
                 bw.Write(pair.Value.Key);
                 bw.Write(pair.Value.Value?.ToString() ?? "");
-                bw.Write(pair.Value.Expiry.Ticks);
+                bw.Write(pair.Value.Expiry);
                 
             }
 
@@ -130,7 +130,7 @@ namespace DistributedCacheServer
                 {
                     Key = itemKey,
                     Value = valueStr, // stored as string — can be casted later
-                    Expiry = new DateTime(ticks)
+                    Expiry = ticks
                 };
             }
 

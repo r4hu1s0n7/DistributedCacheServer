@@ -15,15 +15,35 @@ namespace DistributedCacheServer
         
         private static ConcurrentDictionary<string, ValueItem> ValuePairsBuffer ;
         private static IConfiguration config ;
-        private static string directoryPath = Path.Combine(Directory.GetCurrentDirectory(), config["RDBSnapshotDirectory"]);
+        private static string directoryPath;
         private static readonly Lazy<Persistance> _instance= new ( () => new Persistance(),LazyThreadSafetyMode.ExecutionAndPublication);
-
+        private RecoveryMode Recovery = RecoveryMode.NONE;
+        private PersistanceMode Mode = PersistanceMode.NONE;
         public static Persistance Instance => _instance.Value;
 
         private Persistance()
         {
             config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+            directoryPath = Path.Combine(Directory.GetCurrentDirectory(), config["RDBSnapshotDirectory"]);
             ValuePairsBuffer = new ConcurrentDictionary<string, ValueItem>();
+            if (Enum.TryParse<Persistance.RecoveryMode>(config["RecoveryMode"], true, out var RecoveryMode))
+            {
+                Recovery = RecoveryMode;
+            }
+            else
+            {
+                throw new Exception("Cannot read [RecoveryMode] Config");
+            }
+            if (Enum.TryParse<Persistance.PersistanceMode>(config["PersistanceMode"], true, out var PersistanceMode))
+            {
+                Mode = PersistanceMode;
+
+            }
+            else
+            {
+                throw new Exception("Cannot read [PersistanceMode] Config");
+
+            }
         }
 
         public enum PersistanceMode
@@ -41,25 +61,18 @@ namespace DistributedCacheServer
             NONE
         }
 
-        public void AddToBuffer(string key, ValueItem item)
-        {
-            ValuePairsBuffer[key] = item;
-            if (item.Value != null) // Only enqueue non-deleted items for AOF
-                AOFOperations.Instance.AddCommand($"SET {key} {item.Value}");
-        }
-
-
+  
 
         
-        private static void StopPersistance()
+        private void StopPersistance()
         {
             _cts.Cancel();
         }
 
-      
-        public static void LoadStorage(RecoveryMode recoveryMode)
+        
+        public void LoadStorage()
         {
-            if (recoveryMode == RecoveryMode.RDB)
+            if (Recovery == RecoveryMode.RDB)
             {
                 if (Directory.Exists(directoryPath))
                 {
@@ -68,24 +81,41 @@ namespace DistributedCacheServer
                 }
             }
 
-            if(recoveryMode == RecoveryMode.AOF)
+            if(Recovery == RecoveryMode.AOF)
             {
-                Storage.GetStorage().LoadStorage(AOFOperations.Instance.Load());
+                //Storage.GetStorage().LoadStorage(AOFOperations.Instance.Load());
+                var commandArgsList = AOFOperations.Instance.Load();
+                foreach(var commandArgs in commandArgsList)
+                {
+                    var command = Command.Parse(commandArgs.ToArray());
+                    Command.Execute(command);
+                }
             }
         }
 
-        public static void StartPersistance(PersistanceMode persistanceMode)
+        public void Store(Command command)
         {
-            if (persistanceMode == PersistanceMode.RDB)
+            if(Mode == PersistanceMode.AOF)
             {
-                
+                AOFOperations.Instance.AddCommand(command);
             }
-            if(persistanceMode == PersistanceMode.AOF)
+        }
+
+
+
+        public void StartPersistance()
+        {
+            if (Mode == PersistanceMode.RDB)
+            {
+                RDBOperations.Instance.Start();   
+            }
+            if(Mode == PersistanceMode.AOF)
             {
                 AOFOperations.Instance.Start();
             }
-            if(persistanceMode == PersistanceMode.RDB_AOF)
+            if(Mode == PersistanceMode.RDB_AOF)
             {
+                RDBOperations.Instance.Start();   
                 AOFOperations.Instance.Start();
 
             }

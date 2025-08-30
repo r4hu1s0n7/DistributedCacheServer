@@ -7,19 +7,8 @@ using System.Threading.Tasks;
 namespace DistributedCacheServer
 {
 
-    public enum CommandName
-    {
-        GET,
-        SET,
-        EXPIRY,
-        PING
-    }
 
-    public enum CommandType
-    {
-        STORAGE,
-        SYSTEM
-    }
+
 
     public class Command
     {
@@ -27,8 +16,21 @@ namespace DistributedCacheServer
         public CommandName Name;
         public CommandType Type;
         public ValueItem Value;
-        
 
+        public enum CommandName
+        {
+            GET,
+            SET,
+            EXPIRY,
+            PING
+        }
+
+
+        public enum CommandType
+        {
+            STORAGE,
+            SYSTEM
+        }
 
         public static Command Parse(object[] items)
         {
@@ -45,13 +47,37 @@ namespace DistributedCacheServer
                 case CommandName.SET:
                     command.Type = CommandType.STORAGE;
                     command = ParseSET(command,items);
-                    AOFOperations.Instance.AddCommand(Encoding.Default.GetString(RESP.Serialize(items)));
                     break;
                 default:
                     throw new CacheException("Command Not Found");
             }
 
             return command;
+        }
+
+        public static object Execute(Command executableCommand)
+        {
+            switch (executableCommand.Type)
+            {
+                case CommandType.STORAGE:
+                    if (executableCommand.Name == CommandName.GET)
+                    {
+                        return Storage.GetStorage().ExecuteGet(executableCommand);
+                    }
+                    else if (executableCommand.Name == CommandName.SET)
+                    {
+                        Storage.GetStorage().ExecuteSet(executableCommand);
+                        return "OK";
+                    }
+                    else
+                    {
+                        throw new CacheException("Command not implemented");
+                    }
+                case CommandType.SYSTEM:
+                    throw new CacheException("Command not implemented");
+
+            }
+            return null;
         }
 
         private static Command ParseGET(Command command,object[] items)
@@ -77,7 +103,7 @@ namespace DistributedCacheServer
                 // expiry time
                 if ( items.Length == 4 && Int32.TryParse(items[3].ToString(), out int seconds))
                 {
-                    command.Value.Expiry = DateTime.Now.AddSeconds(seconds);
+                    command.Value.Expiry = DateTimeOffset.UtcNow.AddSeconds(seconds).Ticks;
                 }
                 
             }
@@ -88,6 +114,19 @@ namespace DistributedCacheServer
             return command;
         }
 
-       
+        public override string ToString()
+        {
+            switch (Name)
+            {
+                case CommandName.GET:
+                    return $"GET {Value.Key}";
+                case CommandName.SET:
+                    return $"SET {Value.Key} {Value.Value} {Value.Expiry} ";    
+
+                default:
+                    return null;
+            }
+        }
+
     }
 }
