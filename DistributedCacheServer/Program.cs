@@ -10,7 +10,7 @@ int Port = Convert.ToInt32(config["ClientPort"]);
 string IP = config["ClientIP"];
 IPAddress IPaddr = IPAddress.Parse(IP);
 var listener = new TcpListener(IPaddr, Port);
-
+            
 Console.WriteLine("CACHE Server:");
 
 Persistance.Instance.LoadStorage();
@@ -19,38 +19,45 @@ Persistance.Instance.StartPersistance();
 
 
 
-listener.Start();
+listener.Start(); // configurable connections backlog
 Console.WriteLine("listening");
 
 
 while (true)
 {
-    using (var client = listener.AcceptTcpClient())
-    using (var stream = client.GetStream())
-    {
-        Console.WriteLine("Client connected.");
-        var buffer = new byte[ReadBufferSize];
-
-        int bytesReadSize = stream.Read(buffer, 0, ReadBufferSize);
-        Console.WriteLine("Command Received");
-
-        var commandArgs = RESP.Deserialize(buffer.Take(bytesReadSize).ToArray());
-
-
-        object response = null;
-        try
-        {
-            Command executableCommand = Command.Parse(commandArgs.ToArray());
-
-            response = Command.Execute(executableCommand);
-
-        }catch (CacheException ce)
-        {
-            response = ce.Message;   
-        }
-
-        buffer = RESP.Serialize(response);
-        stream.Write(buffer);
-    }
+    var client = await listener.AcceptTcpClientAsync();
+    _ = Task.Run(() => HandleClientAsync(client)); // Offload to Task
 }
 
+async Task HandleClientAsync(TcpClient client)
+{
+    using (client)
+    using (var stream = client.GetStream())
+    {
+        client.ReceiveTimeout = 5000; // 5 seconds
+        
+        while (client.Connected)
+        {
+            var buffer = new byte[ReadBufferSize];
+            int bytesRead = await stream.ReadAsync(buffer, 0, ReadBufferSize);
+            if (bytesRead == 0) // Client disconnected
+            {
+                Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint}");
+                break;
+            }
+            var commandArgs = RESP.Deserialize(buffer.Take(bytesRead).ToArray());
+            object response;
+            try
+            {
+                var command = Command.Parse(commandArgs.ToArray());
+                response = Command.Execute(command);
+            }
+            catch (CacheException ce)
+            {
+                response = ce.Message;
+            }
+            var responseBuffer = RESP.Serialize(response);
+            await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
+        }
+    }
+}
