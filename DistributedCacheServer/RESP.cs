@@ -161,7 +161,7 @@ namespace DistributedCacheServer
         {
             int end = response.IndexOf(CrLf, pos);
             string lengthStr = response.Substring(pos, end - pos);
-            int length = int.Parse(lengthStr);
+            long length = long.Parse(lengthStr);
             List<string> values = new List<string>();
             pos += lengthStr.Length + CrLf.Length;
             for (int i = 0; i < length; i++)

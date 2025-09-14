@@ -32,7 +32,7 @@ namespace DistributedCacheServer
 
         public void AddCommand(Command command)
         {
-            string commandString = command.ToString();
+            var commandString = command.ToString().Split(" ");
             var commandResp = RESP.Serialize(commandString);
             var commandBytes = Encoding.UTF8.GetString(commandResp);
             CommandsQueue.Enqueue(commandBytes);

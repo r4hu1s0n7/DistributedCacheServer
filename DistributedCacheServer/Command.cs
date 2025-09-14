@@ -121,7 +121,7 @@ namespace DistributedCacheServer
                 case CommandName.GET:
                     return $"GET {Value.Key}";
                 case CommandName.SET:
-                    return $"SET {Value.Key} {Value.Value} {Value.Expiry} ";    
+                    return $"SET {Value.Key} {Value.Value} {Value.Expiry}";    
 
                 default:
                     return null;
