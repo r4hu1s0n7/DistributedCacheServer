@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
-const int ReadBufferSize = 1024 * 2;
+const int ReadBufferSize = 4096 * 2;
 int Port = Convert.ToInt32(config["ClientPort"]);
 string IP = config["ClientIP"];
 IPAddress IPaddr = IPAddress.Parse(IP);
@@ -38,6 +38,7 @@ async Task HandleClientAsync(TcpClient client)
         
         while (client.Connected)
         {
+            List<object> Response = new List<object>();
             var buffer = new byte[ReadBufferSize];
             int bytesRead = await stream.ReadAsync(buffer, 0, ReadBufferSize);
             if (bytesRead == 0) // Client disconnected
@@ -45,18 +46,24 @@ async Task HandleClientAsync(TcpClient client)
                 Console.WriteLine($"Client disconnected: {client.Client.RemoteEndPoint}");
                 break;
             }
-            var commandArgs = RESP.Deserialize(buffer.Take(bytesRead).ToArray());
-            object response;
-            try
+            var commands = RESP.ParseBatchCommands(buffer.Take(bytesRead).ToArray());
+            foreach (var command in commands)
             {
-                var command = Command.Parse(commandArgs.ToArray());
-                response = Command.Execute(command);
+                object commandResponse;
+                try
+                {
+                    var param = Command.Parse(command.ToArray());
+                    commandResponse = Command.Execute(param);
+                }
+                catch (CacheException ce)
+                {
+                    commandResponse = ce.Message;
+                     
+                }
+                Response.Add(commandResponse);
+
             }
-            catch (CacheException ce)
-            {
-                response = ce.Message;
-            }
-            var responseBuffer = RESP.Serialize(response);
+            var responseBuffer = RESP.SerializeBatchResponse(Response.ToArray());
             await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
         }
     }
